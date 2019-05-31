@@ -4,7 +4,7 @@ import useIsomorphicContext from '../../../../src/use-isomorphic-context';
 
 import VerySimpleContext from '../../context/very-simple-context';
 
-function VerySimple() {
+export default function VerySimple() {
     const {x} = useIsomorphicContext(VerySimpleContext);
 
     return (
@@ -13,5 +13,3 @@ function VerySimple() {
         </section>
     );
 }
-
-export default VerySimple;

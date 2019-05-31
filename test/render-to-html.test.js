@@ -7,12 +7,15 @@ import StyledComponentsServerRenderer from '../src/styled-components-server-rend
 import {IsoSimple as IsoSimpleConnected} from './data/connect/isomorphic/iso-simple';
 import {IsoNested as IsoNestedConnected} from './data/connect/isomorphic/iso-nested';
 import {IsoNestedWithStyles as IsoNestedWithStylesConnected} from './data/connect/isomorphic/iso-nested-with-styles';
-import {IsoThrowsDelayedError} from './data/connect/isomorphic/iso-throws-delayed-error';
-import {IsoThrowsImmediateError} from './data/connect/isomorphic/iso-throws-immediate-error';
+import {IsoWithChildren as IsoWithChildrenConnected} from './data/connect/isomorphic/iso-with-children';
 
 import {IsoSimple as IsoSimpleHooked} from './data/hooks/isomorphic/iso-simple';
 import {IsoNested as IsoNestedHooked} from './data/hooks/isomorphic/iso-nested';
 import {IsoNestedWithStyles as IsoNestedWithStylesHooked} from './data/hooks/isomorphic/iso-nested-with-styles';
+import {IsoWithChildren as IsoWithChildrenHooked} from './data/hooks/isomorphic/iso-with-children';
+
+import {IsoThrowsDelayedError} from './data/connect/isomorphic/iso-throws-delayed-error';
+import {IsoThrowsImmediateError} from './data/connect/isomorphic/iso-throws-immediate-error';
 
 import * as fetchBaseValue from './data/streams/fetch-base-value';
 import * as fetchV from './data/streams/fetch-v';
@@ -30,18 +33,21 @@ describe('renderToHtml(isomorphicComponent)', () => {
             IsoSimple: IsoSimpleConnected,
             IsoNested: IsoNestedConnected,
             IsoNestedWithStyles: IsoNestedWithStylesConnected,
+            IsoWithChildren: IsoWithChildrenConnected,
         },
         {
             name: 'useIsomorphicContext()',
             IsoSimple: IsoSimpleHooked,
             IsoNested: IsoNestedHooked,
             IsoNestedWithStyles: IsoNestedWithStylesHooked,
-        }
+            IsoWithChildren: IsoWithChildrenHooked,
+        },
     ].forEach(({
         name,
         IsoSimple,
         IsoNested,
         IsoNestedWithStyles,
+        IsoWithChildren,
     }) => {
         describe(name, () => {
             describe('simple isomorphic component', () => {
@@ -82,6 +88,48 @@ describe('renderToHtml(isomorphicComponent)', () => {
 
                     test('calls fetchBaseValue() once', () => {
                         expect(fetchBaseValueSpy.mock.calls).toHaveLength(1);
+                    });
+                });
+            });
+
+            describe('with children', () => {
+                let html;
+
+                afterEach(() => {
+                    html = undefined;
+                });
+
+                describe('children of another type', () => {
+                    beforeEach(async () => {
+                        html = {
+                            body: await renderToHtml(
+                                <IsoWithChildren power={2}>
+                                    <IsoSimple power={4} />
+                                </IsoWithChildren>
+                            ),
+                        };
+                    });
+
+                    test('renders correctly', () => {
+                        expect(html).toMatchSnapshot();
+                    });
+                });
+
+                describe('children of the same type', () => {
+                    beforeEach(async () => {
+                        html = {
+                            body: await renderToHtml(
+                                <IsoWithChildren power={2}>
+                                    <IsoWithChildren power={3}>
+                                        <IsoSimple power={4} />
+                                    </IsoWithChildren>
+                                </IsoWithChildren>
+                            ),
+                        };
+                    });
+
+                    test('renders correctly', () => {
+                        expect(html).toMatchSnapshot();
                     });
                 });
             });
@@ -135,7 +183,7 @@ describe('renderToHtml(isomorphicComponent)', () => {
                 });
 
                 // TODO: Fix different sc-component-id on Travis
-                test.skip('renders correctly', async () => {
+                test('renders correctly', async () => {
                     const renderer = new StyledComponentsServerRenderer();
                     const body = await renderToHtml(
                         <IsoNestedWithStyles coefficient={9} />,
@@ -145,6 +193,10 @@ describe('renderToHtml(isomorphicComponent)', () => {
                     expect({head: renderer.getStyleTags(), body})
                         .toMatchSnapshot();
                 });
+            });
+
+            describe('isomorphic component with children', function () {
+
             });
 
             describe('non-isomorphic component', () => {

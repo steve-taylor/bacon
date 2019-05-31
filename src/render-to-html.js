@@ -75,7 +75,10 @@ export default async function renderToHtml(
                     registeredStreams[key]
                         .first()
                         .doAction(({hydration: h}) => {
+                            // Populate hydration
                             hydration[key] = h;
+
+                            // Remove this key from the pending state
                             pendingKeys.delete(key);
                         })
                 ))

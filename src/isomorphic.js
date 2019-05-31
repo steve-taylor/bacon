@@ -23,11 +23,19 @@ import Connect from './connect';
  *
  * When a React context isn't provided, the emitted state is fed directly into the component's props.
  *
+ * If you want to pass any props to the underlying component, provide a mapping function via <code>passthrough</code> that, given the props
+ * passed to the isomorphic component, returns the subset of those props to be passed through to the underlying component.
+ *
+ * Regardless of whether and how you specify <code>passthrough</code>, <code>props.children</code> will always be passed through.
+ *
+ * When <code>context</code> isn't specified, passed-through props override <code>state</code> emitted by the <code>getData</code> stream.
+ *
  * @param {Object}        isomorphicComponent               - isomorphic component details
  * @param {string}        isomorphicComponent.name          - name
  * @param {Function}      isomorphicComponent.component     - React component
  * @param {React.Context} [isomorphicComponent.context]     - context to provide and consume the data stream
- * @param {getData}       isomorphicComponent.getData       - data stream creation function
+ * @param {Function}      isomorphicComponent.getData       - data stream creation function
+ * @param {Function}      [isomorphicComponent.passthrough] - a function to pass props through to the underlying component
  * @param {number}        [isomorphicComponent.timeout]     - the number of milliseconds to wait for the stream to emit its first value
  * @param {Object}        [isomorphicComponent.propTypes]   - propType validations
  * @returns {Function} the created isomorphic component
@@ -37,15 +45,23 @@ export default function isomorphic({
     component: C,
     context,
     getData,
+    passthrough = () => ({}),
     timeout,
     propTypes, // eslint-disable-line react/forbid-foreign-prop-types
 }) {
     // When context isn't provided, inject the state directly into the component.
     // TODO: Make this use case more efficient by bypassing context completely.
     const Context = context || React.createContext(null);
-    const Component = context ? C : () => (
+    const Component = context ? C : ({children, ...props}) => ( // eslint-disable-line react/prop-types
         <Connect context={Context}>
-            {(state) => <C {...state} />}
+            {(state) => (
+                <C
+                    {...state}
+                    {...passthrough(props)}
+                >
+                    {children}
+                </C>
+            )}
         </Connect>
     );
 
@@ -65,6 +81,7 @@ export default function isomorphic({
                             const key = keyFor(name, props);
                             let stream$ = getStream(key);
 
+                            // If the stream hasn't been created, create and register it.
                             if (!stream$) {
                                 stream$ = getData(props, undefined).first();
                                 registerStream(key, stream$);
@@ -107,7 +124,9 @@ export default function isomorphic({
                                                             name,
                                                         }}
                                                     >
-                                                        <Component />
+                                                        <Component {...passthrough(props)}>
+                                                            {children}
+                                                        </Component>
                                                     </Context.Provider>
                                                 </ServerContext.Provider>
                                             </IsomorphicContext.Provider>
@@ -129,7 +148,9 @@ export default function isomorphic({
                                             name,
                                         }}
                                     >
-                                        <Component />
+                                        <Component {...passthrough(props)}>
+                                            {children}
+                                        </Component>
                                     </Context.Provider>
                                 );
                             }
@@ -142,7 +163,9 @@ export default function isomorphic({
 
                                         return (
                                             <Context.Provider value={{data$, name, elementId}}>
-                                                <Component />
+                                                <Component {...passthrough(props)}>
+                                                    {children}
+                                                </Component>
                                             </Context.Provider>
                                         );
                                     }}
